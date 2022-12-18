@@ -1,25 +1,31 @@
 #![warn(clippy::all, clippy::pedantic)]
 
-// game state struct
-// player
-// obstacle
+use glam::*;
+use raylib::prelude::*;
 
-fn main() {}
-use bracket_lib::prelude::*;
+use graphics::render;
+use graphics::Graphics;
+use process_events::process_events;
+use step::step;
 
-struct State {}
+mod collisions;
+mod graphics;
+mod obstacle;
+mod player;
+mod process_events;
+mod state;
+mod step;
 
-impl GameState for State {
-    fn tick(&mut self, ctx: &mut BTerm) {
-        ctx.print(1, 1, "Hello Bracket World");
+fn main() {
+    let mut state = state::State::new();
+    let (mut rl, mut rlt) = raylib::init().title("Flappy Fetus").build();
+    let mut graphics = graphics::Graphics::new(&mut rl, &rlt);
+    // main loop enter lol (graphics, state)
+
+    state.running = true;
+    while state.running && !rl.window_should_close() {
+        process_events(&mut rl, &mut rlt, &mut state);
+        step(&mut rl, &mut rlt, &mut state);
+        render(&mut graphics, &mut rl, &mut rlt, &mut state);
     }
-}
-
-fn main() -> BError {
-    let context = BTermBuilder::simple80x50()
-        .with_title("Flappy Nine Eleven")
-        .build()?;
-
-    let gs: State = State {};
-    main_loop(context, gs)
 }
