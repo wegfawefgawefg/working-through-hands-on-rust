@@ -1,15 +1,25 @@
 #![warn(clippy::all, clippy::pedantic)]
 
-// demonstrate function chaining
-fn do_thing(x: i32) -> i32 {
-    x + 1
+// game state struct
+// player
+// obstacle
+
+fn main() {}
+use bracket_lib::prelude::*;
+
+struct State {}
+
+impl GameState for State {
+    fn tick(&mut self, ctx: &mut BTerm) {
+        ctx.print(1, 1, "Hello Bracket World");
+    }
 }
 
-fn main() {
-    let a = 1;
-    let a = do_thing(a);
-    let a = do_thing(a);
-    let a = do_thing(a);
+fn main() -> BError {
+    let context = BTermBuilder::simple80x50()
+        .with_title("Flappy Nine Eleven")
+        .build()?;
 
-    println!("{}", a);
+    let gs: State = State {};
+    main_loop(context, gs)
 }
