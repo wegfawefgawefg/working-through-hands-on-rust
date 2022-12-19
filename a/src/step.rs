@@ -3,11 +3,13 @@ use raylib::prelude::*;
 
 pub const FRAMES_PER_SECOND: u32 = 60;
 pub const TIMESTEP: f32 = 1.0 / FRAMES_PER_SECOND as f32;
-pub const GRAVITY: f32 = 1.0;
+pub const GRAVITY: f32 = 0.5;
 
 pub const SPACE_RADIUS: i32 = 400;
 pub const CEILING_POS: i32 = -SPACE_RADIUS;
 pub const FLOOR_POS: i32 = SPACE_RADIUS;
+
+pub const SCIZORS_AHEAD_SPAWN_DISTANCE: i32 = 400;
 
 use crate::{
     collisions::{is_intersection, Bounded},
@@ -51,7 +53,7 @@ pub fn step_playing(rl: &mut RaylibHandle, rlt: &mut RaylibThread, state: &mut S
     if state.obstacle_spawn_frame_countdown_timer <= 0 {
         state.obstacles.push(Obstacle::new(
             IVec2 {
-                x: player.pos.x + 200,
+                x: player.pos.x + SCIZORS_AHEAD_SPAWN_DISTANCE,
                 y: rand::random::<i32>() % (FLOOR_POS - CEILING_POS) + CEILING_POS,
             },
             UVec2 { x: 20, y: 20 },
@@ -59,10 +61,10 @@ pub fn step_playing(rl: &mut RaylibHandle, rlt: &mut RaylibThread, state: &mut S
         state.obstacle_spawn_frame_countdown_timer = state.obstacle_spawn_period_in_frames;
     }
 
-    // obstacles that are more than 200 units left of the player are removed
+    state.score += 0.1;
     state
         .obstacles
-        .retain(|obstacle| obstacle.pos.x > player.pos.x - 200);
+        .retain(|obstacle| !should_remove_obstacle(obstacle, player));
 
     // if player collides with obstacle
     // game over
@@ -74,13 +76,9 @@ pub fn step_playing(rl: &mut RaylibHandle, rlt: &mut RaylibThread, state: &mut S
         }
     }
 }
-pub fn step_game_over(rl: &mut RaylibHandle, rlt: &mut RaylibThread, state: &mut State) {}
 
-pub fn reset(state: &mut State) {
-    state.player.pos = IVec2 { x: 0, y: 0 };
-    state.player.vel = Vec2 {
-        x: Player::STARTING_SPEED,
-        y: 0.0,
-    };
-    state.obstacles.clear();
+pub fn should_remove_obstacle(obstacle: &Obstacle, player: &Player) -> bool {
+    obstacle.pos.x < player.pos.x - SCIZORS_AHEAD_SPAWN_DISTANCE
 }
+
+pub fn step_game_over(rl: &mut RaylibHandle, rlt: &mut RaylibThread, state: &mut State) {}
