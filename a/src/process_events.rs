@@ -6,7 +6,7 @@ use crate::{
     step::reset,
 };
 
-const JUMP_POWER: f32 = 20.0;
+const JUMP_POWER: f32 = 10.0;
 
 pub fn process_events(rl: &mut RaylibHandle, rlt: &mut RaylibThread, state: &mut State) {
     match state.mode {

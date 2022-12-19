@@ -10,6 +10,7 @@ pub enum Textures {
     GameOver,
     Background,
     WombWall,
+    Backdrop,
 }
 
 pub struct Graphics {
@@ -57,6 +58,7 @@ impl Graphics {
             "game_over",
             "background",
             "wombwall",
+            "backdrop",
         ];
         for name in texture_names {
             let path = format!("assets/{}.png", name);
@@ -104,7 +106,10 @@ pub fn render(
     }
 
     match state.mode {
-        crate::state::Mode::Playing => render_playing_debug_info(&mut screen, graphics, state),
+        crate::state::Mode::Playing => {
+            // render_playing_debug_info(&mut screen, graphics, state);
+            render_score(&mut screen, graphics, state);
+        }
         _ => {}
     }
 }
@@ -112,6 +117,7 @@ pub fn render(
 pub fn render_title(screen: &mut RaylibDrawHandle, graphics: &mut Graphics, state: &mut State) {
     let screen_center = (graphics.dims / 2).as_vec2();
     graphics.camera.zoom = 1.4;
+    graphics.camera.rotation = 0.0;
     graphics.camera.target = raylib::math::Vector2::new(screen_center.x, screen_center.y);
     graphics.camera.offset = raylib::math::Vector2::new(screen_center.x, screen_center.y);
     {
@@ -169,112 +175,191 @@ pub fn render_title(screen: &mut RaylibDrawHandle, graphics: &mut Graphics, stat
     }
 }
 
+pub fn render_flesh_tunnel(
+    d: &mut RaylibMode2D<RaylibDrawHandle>,
+    graphics: &mut Graphics,
+    state: &mut State,
+) {
+    // example how to render a tunnel
+    // let tunnel_pos = IVec2::new(-64, step::CEILING_POS);
+    let tunnel_width = 512 * 4;
+    // render_flesh_tunnel_segment(d, graphics, state, tunnel_pos, tunnel_width);
+
+    /*  we are going to render always 2 of them.
+        use modulus and the player position to get the position of the first and second tunnel
+
+    */
+    let first_tunnel_x =
+        state.player.pos.x - (state.player.pos.x % tunnel_width) - tunnel_width / 2;
+    let first_tunnel_pos = IVec2::new(first_tunnel_x, step::CEILING_POS);
+    render_flesh_tunnel_segment(d, graphics, state, first_tunnel_pos, tunnel_width);
+
+    let second_tunnel_x = first_tunnel_x + tunnel_width;
+    let second_tunnel_pos = IVec2::new(second_tunnel_x, step::CEILING_POS);
+    render_flesh_tunnel_segment(d, graphics, state, second_tunnel_pos, tunnel_width);
+}
+
+pub fn render_flesh_tunnel_segment(
+    d: &mut RaylibMode2D<RaylibDrawHandle>,
+    graphics: &mut Graphics,
+    state: &mut State,
+    pos: IVec2,
+    width: i32,
+) {
+    // we are going to render the background around the player
+    let background_pos = pos;
+    let background_size = IVec2::new(width, step::FLOOR_POS - step::CEILING_POS) * IVec2::new(1, 1);
+    let background_texture = &graphics.textures[Textures::Background as usize];
+    d.draw_texture_pro(
+        &graphics.textures[Textures::Background as usize],
+        Rectangle::new(
+            0.0,
+            0.0,
+            background_texture.width() as f32,
+            background_texture.height() as f32,
+        ),
+        Rectangle::new(
+            background_pos.x as f32,
+            background_pos.y as f32,
+            background_size.x as f32,
+            background_size.y as f32,
+        ),
+        Vector2::new(0.0, 0.0),
+        0.0,
+        Color::WHITE,
+    );
+
+    // draw a womb wall facing down from the top, about half of its height above the ceiling
+    let womb_wall_texture = &graphics.textures[Textures::WombWall as usize];
+    let womb_wall_size = IVec2::new(background_size.x, womb_wall_texture.height() as i32 * 2);
+
+    let upper_womb_wall_pos = IVec2::new(background_pos.x, step::CEILING_POS as i32);
+    d.draw_texture_pro(
+        womb_wall_texture,
+        Rectangle::new(
+            0.0,
+            0.0,
+            -womb_wall_texture.width() as f32,
+            -womb_wall_texture.height() as f32,
+        ),
+        Rectangle::new(
+            upper_womb_wall_pos.x as f32,
+            upper_womb_wall_pos.y as f32,
+            womb_wall_size.x as f32,
+            womb_wall_size.y as f32,
+        ),
+        Vector2::new(0.0, 0.0),
+        0.0,
+        Color::WHITE,
+    );
+
+    // above the upper womb wall, put a backdrop
+    let backdrop_texture = &graphics.textures[Textures::Backdrop as usize];
+    let backdrop_size = IVec2::new(background_size.x, backdrop_texture.height() as i32 * 2);
+    let backdrop_pos = IVec2::new(background_pos.x, upper_womb_wall_pos.y - backdrop_size.y);
+    d.draw_texture_pro(
+        backdrop_texture,
+        Rectangle::new(
+            0.0,
+            0.0,
+            backdrop_texture.width() as f32,
+            backdrop_texture.height() as f32,
+        ),
+        Rectangle::new(
+            backdrop_pos.x as f32,
+            backdrop_pos.y as f32,
+            backdrop_size.x as f32,
+            backdrop_size.y as f32,
+        ),
+        Vector2::new(0.0, 0.0),
+        0.0,
+        Color::WHITE,
+    );
+
+    // now for the lower womb wall
+    let lower_womb_wall_pos = IVec2::new(background_pos.x, step::FLOOR_POS as i32);
+    d.draw_texture_pro(
+        womb_wall_texture,
+        Rectangle::new(
+            0.0,
+            0.0,
+            womb_wall_texture.width() as f32,
+            womb_wall_texture.height() as f32,
+        ),
+        Rectangle::new(
+            lower_womb_wall_pos.x as f32,
+            lower_womb_wall_pos.y as f32 - womb_wall_size.y as f32,
+            womb_wall_size.x as f32,
+            womb_wall_size.y as f32,
+        ),
+        Vector2::new(0.0, 0.0),
+        0.0,
+        Color::WHITE,
+    );
+
+    // below the lower womb wall, put a backdrop
+    let backdrop_pos = IVec2::new(background_pos.x, lower_womb_wall_pos.y);
+    d.draw_texture_pro(
+        backdrop_texture,
+        Rectangle::new(
+            0.0,
+            0.0,
+            backdrop_texture.width() as f32,
+            backdrop_texture.height() as f32,
+        ),
+        Rectangle::new(
+            backdrop_pos.x as f32,
+            backdrop_pos.y as f32,
+            backdrop_size.x as f32,
+            backdrop_size.y as f32,
+        ),
+        Vector2::new(0.0, 0.0),
+        0.0,
+        Color::WHITE,
+    );
+}
+
 pub fn render_playing(screen: &mut RaylibDrawHandle, graphics: &mut Graphics, state: &mut State) {
-    graphics.camera.zoom = 1.4;
+    graphics.camera.zoom = 1.4 + state.player.vel.y * 0.015;
     let screen_center = (graphics.dims / 2).as_vec2();
     graphics.camera.target =
         raylib::math::Vector2::new(state.player.pos.x as f32, state.player.pos.y as f32);
     graphics.camera.offset = raylib::math::Vector2::new(screen_center.x, screen_center.y);
+    graphics.camera.rotation = state.player.vel.y * 0.3;
     {
         let mut d = screen.begin_mode2D(graphics.camera);
         {
-            // set the cam target
-            // graphics.camera.target = raylib::math::Vector2::new(
-            //     state.player.pos.x as f32,
-            //     0.0, // state.player.pos.y as f32
-            // );
-
-            // we are going to render the background around the player
-            // player pos
-            // background_size = 128
-            // let background_pos = IVec2::new(-((graphics.dims.x / 2) as i32), step::CEILING_POS);
-            let background_pos = IVec2::new(-64, step::CEILING_POS);
-            let background_size =
-                IVec2::new(512 * 4, step::FLOOR_POS - step::CEILING_POS) * IVec2::new(1, 1);
-            let background_texture = &graphics.textures[Textures::Background as usize];
-            d.draw_texture_pro(
-                &graphics.textures[Textures::Background as usize],
-                Rectangle::new(
-                    0.0,
-                    0.0,
-                    background_texture.width() as f32,
-                    background_texture.height() as f32,
-                ),
-                Rectangle::new(
-                    background_pos.x as f32,
-                    background_pos.y as f32,
-                    background_size.x as f32,
-                    background_size.y as f32,
-                ),
-                Vector2::new(0.0, 0.0),
-                0.0,
-                Color::WHITE,
-            );
-
-            // draw a womb wall facing down from the top, about half of its height above the ceiling
-            let womb_wall_texture = &graphics.textures[Textures::WombWall as usize];
-            let womb_wall_size =
-                IVec2::new(background_size.x, womb_wall_texture.height() as i32 * 2);
-
-            let upper_womb_wall_pos = IVec2::new(background_pos.x, step::CEILING_POS as i32);
-            d.draw_texture_pro(
-                womb_wall_texture,
-                Rectangle::new(
-                    0.0,
-                    0.0,
-                    -womb_wall_texture.width() as f32,
-                    -womb_wall_texture.height() as f32,
-                ),
-                Rectangle::new(
-                    upper_womb_wall_pos.x as f32,
-                    upper_womb_wall_pos.y as f32,
-                    womb_wall_size.x as f32,
-                    womb_wall_size.y as f32,
-                ),
-                Vector2::new(0.0, 0.0),
-                0.0,
-                Color::WHITE,
-            );
-
-            // now for the lower womb wall
-            let lower_womb_wall_pos = IVec2::new(background_pos.x, step::FLOOR_POS as i32);
-            d.draw_texture_pro(
-                womb_wall_texture,
-                Rectangle::new(
-                    0.0,
-                    0.0,
-                    womb_wall_texture.width() as f32,
-                    womb_wall_texture.height() as f32,
-                ),
-                Rectangle::new(
-                    lower_womb_wall_pos.x as f32,
-                    lower_womb_wall_pos.y as f32 - womb_wall_size.y as f32,
-                    womb_wall_size.x as f32,
-                    womb_wall_size.y as f32,
-                ),
-                Vector2::new(0.0, 0.0),
-                0.0,
-                Color::WHITE,
-            );
-
+            render_flesh_tunnel(&mut d, graphics, state);
             state.player.render(&mut d, graphics);
             for obstacle in &mut state.obstacles {
                 obstacle.render(&mut d, graphics);
             }
-
-            // draw the ground
-            let size = graphics.dims.as_vec2();
-            let half_size = size / 2.0;
-            // let ground = Rectangle::new(state.player.pos.x - , step::GROUND, 1000.0, 100.0);
-            // d.draw_rectangle_rec(ground, Color::RED);
         }
     }
+}
+
+pub fn render_score(screen: &mut RaylibDrawHandle, graphics: &mut Graphics, state: &mut State) {
+    // bottom left corner render score as red text
+    let score_text = format!("{}", state.score as i32);
+    // use                 raylib::text::measure_text_ex(d.get_font_default(), title, font_size as f32, 0.0);
+    let score_text_size =
+        raylib::text::measure_text_ex(screen.get_font_default(), &score_text, 20.0, 0.0);
+    let score_text_pos = Vec2::new(10.0, graphics.dims.y as f32 - score_text_size.y - 10.0);
+    screen.draw_text(
+        &score_text,
+        score_text_pos.x as i32,
+        score_text_pos.y as i32,
+        20,
+        Color::new(255, 0, 0, 255),
+    );
 }
 
 pub fn render_game_over(screen: &mut RaylibDrawHandle, graphics: &mut Graphics, state: &mut State) {
     let screen_center = (graphics.dims / 2).as_vec2();
     graphics.camera.target = raylib::math::Vector2::new(screen_center.x, screen_center.y);
     graphics.camera.offset = raylib::math::Vector2::new(screen_center.x, screen_center.y);
+    graphics.camera.rotation = 0.0;
+    graphics.camera.zoom = 1.3;
     {
         let mut d = screen.begin_mode2D(graphics.camera);
         {
@@ -300,23 +385,29 @@ pub fn render_game_over(screen: &mut RaylibDrawHandle, graphics: &mut Graphics, 
                 raylib::text::measure_text_ex(d.get_font_default(), title, font_size as f32, 0.0);
             let text_center = title_size / 2.0;
 
-            d.draw_text(title, 0, 0, font_size, Color::WHITE);
+            d.draw_text(
+                title,
+                screen_center.x as i32,
+                screen_center.y as i32,
+                font_size,
+                Color::WHITE,
+            );
 
             // a bit under that draw "press [space]"
             let press_space = "Press [space] to be born again";
             let press_space_size =
                 raylib::text::measure_text_ex(d.get_font_default(), press_space, 30.0, 0.0);
             let press_space_center = press_space_size / 2.0;
-            let press_space_pos = Vec2::new(
-                text_center.x - press_space_center.x,
-                text_center.y + press_space_center.y + 100.0,
-            );
+            let press_space_pos =
+                Vec2::new(text_center.x, text_center.y + press_space_center.y + 100.0);
+            // transparency should fade in and out
+            let a = ((d.get_time() * 1.0) % 2.0) as u8 * 255;
             d.draw_text(
                 press_space,
                 press_space_pos.x as i32,
                 press_space_pos.y as i32,
                 30,
-                Color::WHITE,
+                Color::new(255, 255, 255, a),
             );
         }
     }
