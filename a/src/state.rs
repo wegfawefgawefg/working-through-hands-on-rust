@@ -1,4 +1,4 @@
-use crate::{obstacle::Obstacle, player::Player};
+use crate::{obstacle::Obstacle, player::Player, step};
 
 pub enum Mode {
     Title,
@@ -20,10 +20,13 @@ pub struct State {
     pub win: bool,
 
     pub player: Player,
-    pub obstacle: Obstacle,
+    pub obstacles: Vec<Obstacle>,
+    pub obstacle_spawn_frame_countdown_timer: u32,
+    pub obstacle_spawn_period_in_frames: u32,
 }
 
 impl State {
+    pub const STARTING_OBSTACLE_SPAWN_FRAME_PERIOD: u32 = 1 * step::FRAMES_PER_SECOND;
     pub fn new() -> State {
         State {
             mode: Mode::Title,
@@ -39,7 +42,9 @@ impl State {
             win: false,
 
             player: Player::new(glam::IVec2 { x: 0, y: 0 }),
-            obstacle: Obstacle::new(glam::IVec2 { x: 64, y: 64 }, glam::UVec2 { x: 8, y: 8 }),
+            obstacles: Vec::new(),
+            obstacle_spawn_frame_countdown_timer: State::STARTING_OBSTACLE_SPAWN_FRAME_PERIOD,
+            obstacle_spawn_period_in_frames: State::STARTING_OBSTACLE_SPAWN_FRAME_PERIOD,
         }
     }
 }

@@ -1,6 +1,7 @@
 use glam::{IVec2, UVec2, Vec2};
 use raylib::prelude::*;
 
+use crate::collisions::Bounded;
 use crate::graphics::Graphics;
 use crate::graphics::Textures;
 
@@ -35,5 +36,15 @@ impl Player {
             0.0,
             Color::WHITE,
         );
+    }
+}
+
+impl Bounded for Player {
+    fn get_pos(&self) -> IVec2 {
+        self.pos
+    }
+
+    fn get_size(&self) -> UVec2 {
+        Self::SIZE
     }
 }

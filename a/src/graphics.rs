@@ -190,7 +190,7 @@ pub fn render_playing(screen: &mut RaylibDrawHandle, graphics: &mut Graphics, st
             // let background_pos = IVec2::new(-((graphics.dims.x / 2) as i32), step::CEILING_POS);
             let background_pos = IVec2::new(-64, step::CEILING_POS);
             let background_size =
-                IVec2::new(512, step::FLOOR_POS - step::CEILING_POS) * IVec2::new(1, 1);
+                IVec2::new(512 * 4, step::FLOOR_POS - step::CEILING_POS) * IVec2::new(1, 1);
             let background_texture = &graphics.textures[Textures::Background as usize];
             d.draw_texture_pro(
                 &graphics.textures[Textures::Background as usize],
@@ -258,7 +258,9 @@ pub fn render_playing(screen: &mut RaylibDrawHandle, graphics: &mut Graphics, st
             );
 
             state.player.render(&mut d, graphics);
-            // render the obstacle
+            for obstacle in &mut state.obstacles {
+                obstacle.render(&mut d, graphics);
+            }
 
             // draw the ground
             let size = graphics.dims.as_vec2();
